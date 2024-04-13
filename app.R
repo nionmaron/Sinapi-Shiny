@@ -19,8 +19,10 @@ library(shinydashboard)
 sinapi_comp <- read_xlsx("www/DB/DESONERADO/SINAPI_Custo_Ref_Composicoes_Sintetico_SC_202402_Desonerado.xlsx",skip = 4)
 
 table_sinapi <- sinapi_comp[c("CODIGO  DA COMPOSICAO", "DESCRICAO DA COMPOSICAO","UNIDADE","CUSTO TOTAL")]
+# Definindo novos nomes abreviados para as colunas
 
-table_sinapi$`CUSTO TOTAL`
+names(table_sinapi) <- c("COD", "DESCRICAO DA COMPOSICAO","UNID","PREÇO")
+
 
 ui <- fluidPage(
   titlePanel("Orçamento"),
@@ -32,17 +34,21 @@ ui <- fluidPage(
     
     # Formulário de seleção no topo da página
     fluidRow(
-      column(3, selectInput("tableType", "Tipo de Tabela", 
+      column(2, selectInput("tableType", "Tipo de Tabela", 
                             choices = c("SINAPI", "PRÓPRIA"))),
-      column(3, selectInput("State", "Local", 
-                            choices = c("SC", "PR"))),
-      column(3, selectInput("reference", "Referência", 
-                            choices = c("2024-02", "2024-01"))),
       column(3, selectInput("searchType", "Tipo de Pesquisa", 
                             choices = c("INSUMO", "COMPOSIÇÕES"))),
       column(3, selectInput("taxStatus", "Desoneração", 
-                            choices = c("ONERADO", "DESONERADO", "INDEFINIDO")))
-    ),
+                            choices = c("ONERADO", "DESONERADO", "INDEFINIDO"))),
+      column(2, selectInput("State", "Local", 
+                            choices = c("SC", "PR"))),
+      column(2, selectInput("reference", "Referência", 
+                            choices = c("2024-02", "2024-01")))
+    )),
+    
+    wellPanel(
+      style = "padding: 20px; border: solid 1px #337ab7; border-radius: 5px; background-color: #fff;",
+      title = h3("Meu Painel", style = "color: #337ab7;"),  # Título da 'box'
     
     fluidRow(
       div(style = "background-color: #f2f2f2; padding: 0px;",
@@ -59,9 +65,18 @@ ui <- fluidPage(
     column(4, actionButton("addButton", "Adicionar ao Orçamento",width="100%"))
   ),
   
+  
   wellPanel(
     style = "padding: 20px; border: solid 1px #337ab7; border-radius: 5px; background-color: #fff;",
     title = h3("budget", style = "color: #337ab7;"),  # Título da 'box',
+    
+    fluidRow(
+      column(3, selectInput("ajusteDecimal", "Ajuste Decimal", 
+                            choices = c("ARREDONDAMENTO", "TRUCAMENTO"))),
+      column(3, selectInput("tipoBDI", "Tipo de BDI", 
+                            choices = c("ÚNICO", "ESPECÍFICO"))),
+      
+    ),
 
     fluidRow(
       div(style = "background-color: #f2f2f2;",
@@ -84,7 +99,7 @@ server <- function(input, output, session) {
                                               Descricao = character(), 
                                               Unidade = character(), 
                                               CustoTotal = numeric(), 
-                                              Quantidade = numeric(), 
+                                              QTD = numeric(), 
                                               Total = numeric()))
   
 
@@ -93,8 +108,8 @@ server <- function(input, output, session) {
     datatableData <- table_sinapi[grepl(input$searchBox, table_sinapi$`DESCRICAO DA COMPOSICAO`), ]
     
     # Criar uma nova coluna com botões de adição
-    adicionarButtons <- sprintf('<button onclick="Shiny.setInputValue(\'add_item_%s\', TRUE, {priority: \'event\'});" class="btn btn-primary btn-sm">Adicionar</button>', 1:nrow(datatableData))
-    datatableData <- cbind(Adicionar = adicionarButtons, datatableData)
+    adicionarButtons <- sprintf('<button onclick="Shiny.setInputValue(\'add_item_%s\', TRUE, {priority: \'event\'});" class="btn btn-primary btn-sm">INCLUIR</button>', 1:nrow(datatableData))
+    datatableData <- cbind(datatableData,Adicionar = adicionarButtons)
     
     # Renderizar a datatable sem a numeração automática das linhas e limitando a exibição a 5 linhas
     datatable(datatableData, 
@@ -102,7 +117,7 @@ server <- function(input, output, session) {
               selection = 'single', 
               options = list( paging = TRUE, pageLength = 3,
                               columnDefs = list(
-                                list(width = '50%', targets = 2)  # Ajuste o índice para corresponder à sua coluna
+                                list(width = '50%', targets = 1)  # Ajuste o índice para corresponder à sua coluna
                               )),
               rownames = FALSE) # Desativa a numeração automática das linhas
   })
@@ -111,7 +126,7 @@ server <- function(input, output, session) {
   observeEvent(input$addButton, {
     req(input$materialTable_rows_selected)
     selectedRow <- table_sinapi[input$materialTable_rows_selected, , drop = FALSE]
-    selectedRow$Quantidade <- 0
+    selectedRow$QTD <- 0
     selectedRow$Total <- 0
     currentSelected <- selectedMaterials()
     selectedMaterials(rbind(currentSelected, selectedRow))
@@ -129,7 +144,7 @@ server <- function(input, output, session) {
                 selection = 'none',
                 options = list( paging = TRUE,
                                 columnDefs = list(
-                                  list(width = '100%', targets = 1)  # Ajuste o índice para corresponder à sua coluna
+                                  list(width = '50%', targets = 1)  # Ajuste o índice para corresponder à sua coluna
                                 )),
                 rownames = FALSE)
       
