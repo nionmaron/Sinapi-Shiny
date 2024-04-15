@@ -78,7 +78,12 @@ ui <- fluidPage(
       column(3, selectInput("ajusteDecimal", "Ajuste Decimal", 
                             choices = c("ARREDONDAMENTO", "TRUCAMENTO"))),
       column(3, selectInput("tipoBDI", "Tipo de BDI", 
-                            choices = c("ÚNICO", "ESPECÍFICO"))),
+                            choices = c("ÚNICO", "SEM BDI"))),
+      
+      column(3, conditionalPanel(
+        condition = "input.tipoBDI === 'ÚNICO'",
+        numericInput("valorBDI", "Valor do BDI (%):", value = 0)
+      ))
       
     ),
 
@@ -94,12 +99,14 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
+  
   selectedMaterials <- reactiveVal(data.frame(Codigo = character(), 
                                               Descricao = character(), 
                                               Unidade = character(), 
                                               CustoTotal = numeric(), 
                                               QTD = numeric(), 
-                                              `TOTAL S/BDI` = numeric()))
+                                              `TOTAL S/BDI` = numeric(),
+                                              `TOTAL C/BDI` = numeric()))
   
 
   datatableData <- table_sinapi
@@ -136,6 +143,7 @@ server <- function(input, output, session) {
     selectedRow <- datatableData[input$materialTable_rows_selected, , drop = FALSE]
     selectedRow$QTD <- 0
     selectedRow$`TOTAL S/BDI` <- 0
+    selectedRow$`TOTAL C/BDI` <- 0
     currentSelected <- selectedMaterials()
     selectedMaterials(rbind(currentSelected, selectedRow))
   })
@@ -183,6 +191,12 @@ server <- function(input, output, session) {
     if (j == 4) {  # Coluna Quantidade
       df_temp [i, 5] <- v
       df_temp [i, 6] <- floor(df_temp [i, 5]*df_temp [i, 4] * 100) / 100   # Recalcular total
+      
+      if(input$tipoBDI == 'ÚNICO'){df_temp [i, 7] <- floor(df_temp [i, 5]*df_temp [i, 4]*(1+input$valorBDI/100) * 100) / 100
+      }else{
+        df_temp [i, 7] <- floor(df_temp [i, 5]*df_temp [i, 4]*(1+0) * 100) / 100
+      }
+      
     }
     selectedMaterials(df_temp )  # Atualizar o valor reativo
     })
