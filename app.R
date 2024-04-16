@@ -92,7 +92,16 @@ ui <- fluidPage(
           h3("Orçamento", style = "text-align: center;"),
       ),
       div(style = "height: 5px;"),
-      column(12, DTOutput("budgetTable"), style = "margin: auto;"))
+      column(12, DTOutput("budgetTable"), style = "margin: auto;"),
+      div(style = "height: 5px;"),
+      div(style = "background-color: #f2f2f2; padding: 20px;text-align: right; font-weight: bold",
+          h4("Totais", style = "text-align: right;"),
+          textOutput("totalSemBDI"),
+          textOutput("totalComBDI")
+      )
+      
+      )
+    
     )
 
 )
@@ -201,13 +210,49 @@ server <- function(input, output, session) {
     selectedMaterials(df_temp )  # Atualizar o valor reativo
     })
   
+  # observar TIPO de BDI
+  observeEvent(input$tipoBDI, {
+    df_temp <- selectedMaterials()
+    
+    if(input$tipoBDI == 'ÚNICO'){df_temp [, 7] <- floor(df_temp [, 5]*df_temp [, 4]*(1+input$valorBDI/100) * 100) / 100
+    }else{
+      df_temp [, 7] <- floor(df_temp [, 5]*df_temp [, 4]*(1+0) * 100) / 100
+    }
+    selectedMaterials(df_temp )  # Atualizar o valor reativo
+  })
+  
+  # observar mundança de BDI
+  observeEvent(input$valorBDI, {
+    df_temp <- selectedMaterials()
+    
+    if(input$tipoBDI == 'ÚNICO'){df_temp [, 7] <- floor(df_temp [, 5]*df_temp [, 4]*(1+input$valorBDI/100) * 100) / 100
+    }else{
+      df_temp [, 7] <- floor(df_temp [, 5]*df_temp [, 4]*(1+0) * 100) / 100
+    }
+    selectedMaterials(df_temp )  # Atualizar o valor reativo
+  })
+  
+  # observar DELETE LINHA
   observeEvent(input$delete_row, {
     df <- selectedMaterials()
     if (!is.null(df) && nrow(df) >= input$delete_row) {
       df <- df[-as.numeric(input$delete_row), ]
       selectedMaterials(df)
     }
+    
+    
   }, ignoreNULL = TRUE)
+  
+  
+  # Calcular e mostrar os totais
+  output$totalSemBDI <- renderText({
+    paste("Total sem BDI: R$", 2323)
+  })
+  output$totalComBDI <- renderText({
+    paste("Total com BDI: R$", 2332)
+  })
+  
+  
 }
 
 shinyApp(ui, server)
