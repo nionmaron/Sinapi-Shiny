@@ -239,18 +239,20 @@ server <- function(input, output, session) {
       df <- df[-as.numeric(input$delete_row), ]
       selectedMaterials(df)
     }
-    
-    
   }, ignoreNULL = TRUE)
   
+  # Observar qualquer mundança e atualizar total
+  observeEvent(input$budgetTable_cell_edit, {
+    # Calcular e mostrar os totais
+    output$totalSemBDI <- renderText({
+      paste("Total sem BDI: R$", sum(selectedMaterials()$`TOTAL S/BDI`))
+    })
+    output$totalComBDI <- renderText({
+      paste("Total com BDI: R$", sum(selectedMaterials()$`TOTAL C/BDI`))
+    })
+    
+  })
   
-  # Calcular e mostrar os totais
-  output$totalSemBDI <- renderText({
-    paste("Total sem BDI: R$", 2323)
-  })
-  output$totalComBDI <- renderText({
-    paste("Total com BDI: R$", 2332)
-  })
   
   
 }
